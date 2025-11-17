@@ -5,9 +5,62 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 
 const Index = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    course: '',
+    message: ''
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://example.com/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: '✅ Заявка отправлена!',
+          description: 'Мы свяжемся с вами в ближайшее время'
+        });
+        setFormData({ name: '', email: '', phone: '', course: '', message: '' });
+        setIsDialogOpen(false);
+      } else {
+        throw new Error('Ошибка отправки');
+      }
+    } catch (error) {
+      toast({
+        title: '❌ Ошибка',
+        description: 'Не удалось отправить заявку. Попробуйте позже.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const courses = [
     {
@@ -123,10 +176,97 @@ const Index = () => {
             </button>
           </nav>
 
-          <Button className="animate-fade-in bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity">
-            <Icon name="Phone" size={16} className="mr-2" />
-            Связаться
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="animate-fade-in bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity">
+                <Icon name="Phone" size={16} className="mr-2" />
+                Связаться
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle className="text-2xl">Записаться на курс</DialogTitle>
+                <DialogDescription>
+                  Заполните форму и мы свяжемся с вами для консультации
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Имя *</Label>
+                  <Input 
+                    id="name" 
+                    placeholder="Ваше имя"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email *</Label>
+                  <Input 
+                    id="email" 
+                    type="email"
+                    placeholder="example@mail.com"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Телефон *</Label>
+                  <Input 
+                    id="phone" 
+                    type="tel"
+                    placeholder="+7 (999) 123-45-67"
+                    value={formData.phone}
+                    onChange={(e) => handleInputChange('phone', e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="course">Курс *</Label>
+                  <Select value={formData.course} onValueChange={(value) => handleInputChange('course', value)} required>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите курс" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="web">Web-разработка</SelectItem>
+                      <SelectItem value="design">UX/UI Дизайн</SelectItem>
+                      <SelectItem value="data">Data Science</SelectItem>
+                      <SelectItem value="marketing">Digital Marketing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="message">Комментарий</Label>
+                  <Textarea 
+                    id="message"
+                    placeholder="Расскажите о вашем опыте и целях"
+                    value={formData.message}
+                    onChange={(e) => handleInputChange('message', e.target.value)}
+                    rows={3}
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                      Отправка...
+                    </>
+                  ) : (
+                    <>
+                      <Icon name="Send" size={16} className="mr-2" />
+                      Отправить заявку
+                    </>
+                  )}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
@@ -147,10 +287,14 @@ const Index = () => {
                   Начни карьеру в IT с поддержкой менторов и реальными проектами в портфолио.
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white h-12 px-8">
-                    Выбрать курс
-                    <Icon name="ArrowRight" size={18} className="ml-2" />
-                  </Button>
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="lg" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white h-12 px-8">
+                        Выбрать курс
+                        <Icon name="ArrowRight" size={18} className="ml-2" />
+                      </Button>
+                    </DialogTrigger>
+                  </Dialog>
                   <Button size="lg" variant="outline" className="h-12 px-8 border-2 hover:bg-muted">
                     <Icon name="Play" size={18} className="mr-2" />
                     Смотреть видео
@@ -302,10 +446,14 @@ const Index = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button className="w-full bg-white text-primary hover:bg-white/90">
-                      Оставить заявку
-                      <Icon name="Send" size={16} className="ml-2" />
-                    </Button>
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full bg-white text-primary hover:bg-white/90">
+                          Оставить заявку
+                          <Icon name="Send" size={16} className="ml-2" />
+                        </Button>
+                      </DialogTrigger>
+                    </Dialog>
                   </CardContent>
                 </Card>
 
